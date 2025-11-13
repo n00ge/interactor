@@ -1,5 +1,3 @@
-require "ostruct"
-
 module Interactor
   # Public: The object for tracking state of an Interactor's invocation. The
   # context is used to initialize the interactor with the information required
@@ -28,7 +26,91 @@ module Interactor
   #   # => "baz"
   #   context
   #   # => #<Interactor::Context foo="baz" hello="world">
-  class Context < OpenStruct
+  class Context
+    # Internal: Initialize a new Context with the given attributes.
+    #
+    # attributes - A Hash of attributes to initialize the context with.
+    #
+    # Returns a new Context instance.
+    def initialize(attributes = {})
+      @table = {}
+      attributes.each { |key, value| self[key] = value }
+    end
+
+    # Internal: Get the value of an attribute.
+    #
+    # key - The Symbol or String key of the attribute.
+    #
+    # Returns the value of the attribute or nil if not set.
+    def [](key)
+      @table[key.to_sym]
+    end
+
+    # Internal: Set the value of an attribute.
+    #
+    # key - The Symbol or String key of the attribute.
+    # value - The value to set.
+    #
+    # Returns the value.
+    def []=(key, value)
+      @table[key.to_sym] = value
+    end
+
+    # Internal: Convert the context to a hash.
+    #
+    # Returns a Hash representation of the context.
+    def to_h
+      @table.dup
+    end
+
+    # Internal: Iterate over each key-value pair in the context.
+    #
+    # Yields each key-value pair.
+    #
+    # Returns nothing.
+    def each_pair(&block)
+      @table.each_pair(&block)
+    end
+
+    # Internal: Check if the context responds to a method.
+    #
+    # method_name - The Symbol or String name of the method.
+    # include_private - Whether to include private methods (default: false).
+    #
+    # Returns true if the method exists or is a dynamic getter/setter.
+    def respond_to_missing?(method_name, include_private = false)
+      true
+    end
+
+    # Internal: Handle dynamic getter and setter methods.
+    #
+    # method_name - The Symbol name of the method.
+    # args - Arguments passed to the method.
+    #
+    # Returns the value for getters or sets the value for setters.
+    def method_missing(method_name, *args)
+      if method_name.to_s.end_with?("=")
+        self[method_name.to_s.chomp("=")] = args.first
+      else
+        self[method_name]
+      end
+    end
+
+    # Internal: Access the underlying hash table (for compatibility).
+    #
+    # Returns the internal hash table.
+    def table
+      @table
+    end
+    private :table
+
+    # Internal: Provide modifiable access to the table (for compatibility).
+    #
+    # Returns the internal hash table.
+    def modifiable
+      @table
+    end
+    private :modifiable
     # Internal: Initialize an Interactor::Context or preserve an existing one.
     # If the argument given is an Interactor::Context, the argument is returned.
     # Otherwise, a new Interactor::Context is initialized from the provided
