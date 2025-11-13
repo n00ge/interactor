@@ -11,7 +11,7 @@
 Add Interactor to your Gemfile and `bundle install`.
 
 ```ruby
-gem "interactor", "~> 3.0"
+gem "interactor", "~> 4.0"
 ```
 
 ## What is an Interactor?
@@ -83,6 +83,123 @@ Normally, however, these exceptions are not seen. In the recommended usage, the 
 This works because the `call` class method swallows exceptions.  When unit testing an interactor, if calling custom business logic methods directly and bypassing `call`, be aware that `fail!` will generate such exceptions.
 
 See *Interactors in the Controller*, below, for the recommended usage of `call` and `success?`.
+
+### Contracts (Type Safety)
+
+**New in Interactor 4.0**: You can now declare required and optional context attributes with type validation using contracts for both inputs and outputs.
+
+#### Input Contracts (expects)
+
+Use `expects` to validate inputs before the interactor runs:
+
+```ruby
+class CreateUser
+  include Interactor
+  include Interactor::Contracts
+
+  expects do
+    required(:email).filled(:string)
+    required(:name).filled(:string)
+    optional(:age).maybe(:integer)
+  end
+
+  def call
+    # email and name are guaranteed to be present
+    User.create!(email: context.email, name: context.name, age: context.age)
+  end
+end
+```
+
+If input validation fails, the context is automatically failed with errors:
+
+```ruby
+result = CreateUser.call(name: "John")
+result.failure?  # => true
+result.errors    # => ["email is required but missing"]
+```
+
+#### Output Contracts (ensures)
+
+Use `ensures` to validate outputs after the interactor runs successfully:
+
+```ruby
+class CreateUser
+  include Interactor
+  include Interactor::Contracts
+
+  expects do
+    required(:email).filled(:string)
+    required(:name).filled(:string)
+  end
+
+  ensures do
+    required(:user).type(User)
+    required(:token).filled(:string)
+  end
+
+  def call
+    context.user = User.create!(email: context.email, name: context.name)
+    context.token = generate_token(context.user)
+    # If we forget to set user or token, ensures will catch it!
+  end
+end
+```
+
+Output contracts are validated **only if the interactor succeeds**. If the context is failed during execution, output validation is skipped.
+
+```ruby
+result = CreateUser.call(email: "test@example.com", name: "John")
+result.success?  # => true
+result.user      # => #<User> (guaranteed to exist and be correct type)
+
+# If output validation fails:
+result = CreateUser.call(email: "test@example.com", name: "John")
+result.failure?  # => true
+result.errors    # => ["user is required but missing"]
+```
+
+#### Benefits of Output Contracts
+
+1. **Documentation** - Clearly see what an interactor produces
+2. **Type Safety** - Catch missing or incorrect outputs at runtime
+3. **Organizer Validation** - Ensure each step produces what the next step needs
+4. **Fail Fast** - Detect bugs immediately rather than later in the call chain
+
+#### Contract DSL Reference
+
+**Declaring Attributes:**
+- `required(:attribute)` - Attribute must be present
+- `optional(:attribute)` - Attribute may be omitted
+
+**Validation Methods:**
+- `.filled(type)` - Must not be nil or empty, optionally check type
+- `.maybe(type)` - May be nil, but if present must match type
+- `.type(type)` - Must match the specified type
+
+**Supported Types:**
+
+`:string`, `:integer`, `:float`, `:numeric`, `:hash`, `:array`, `:boolean`/`:bool`, `:symbol`, or any Ruby class.
+
+**Examples:**
+
+```ruby
+class ProcessPayment
+  include Interactor::Contracts
+
+  expects do
+    required(:user).type(User)
+    required(:amount).filled(:integer)
+    required(:params).filled(:hash)
+    optional(:notify).maybe(:boolean)
+  end
+
+  ensures do
+    required(:payment).type(Payment)
+    required(:receipt_id).filled(:string)
+    optional(:notification_sent).type(:boolean)
+  end
+end
+```
 
 ### Hooks
 

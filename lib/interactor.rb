@@ -2,6 +2,7 @@ require "interactor/context"
 require "interactor/error"
 require "interactor/hooks"
 require "interactor/organizer"
+require "interactor/contracts"
 
 # Public: Interactor methods. Because Interactor is a module, custom Interactor
 # classes should include Interactor rather than inherit from it.
@@ -142,6 +143,7 @@ module Interactor
     with_hooks do
       call
       context.called!(self)
+      validate_output_contract! if respond_to?(:validate_output_contract!, true)
     end
   rescue
     context.rollback!

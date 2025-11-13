@@ -1,8 +1,8 @@
-# encoding: utf-8
+# frozen_string_literal: true
 
 Gem::Specification.new do |spec|
   spec.name    = "interactor"
-  spec.version = "3.1.0"
+  spec.version = "4.0.0"
 
   spec.author      = "Collective Idea"
   spec.email       = "info@collectiveidea.com"
@@ -11,9 +11,23 @@ Gem::Specification.new do |spec|
   spec.homepage    = "https://github.com/collectiveidea/interactor"
   spec.license     = "MIT"
 
-  spec.files      = `git ls-files`.split($/)
-  spec.test_files = spec.files.grep(/^spec/)
+  spec.required_ruby_version = ">= 3.0.0"
 
-  spec.add_development_dependency "bundler", "~> 1.7"
-  spec.add_development_dependency "rake", "~> 10.3"
+  spec.files = Dir[
+    "lib/**/*.rb",
+    "MIT-LICENSE",
+    "README.md"
+  ]
+  spec.test_files = Dir["spec/**/*"]
+  spec.require_paths = ["lib"]
+
+  spec.add_development_dependency "bundler", ">= 2.0"
+  spec.add_development_dependency "rake", ">= 13.0"
+
+  spec.metadata = {
+    "bug_tracker_uri" => "https://github.com/collectiveidea/interactor/issues",
+    "changelog_uri" => "https://github.com/collectiveidea/interactor/blob/master/CHANGELOG.md",
+    "source_code_uri" => "https://github.com/collectiveidea/interactor",
+    "rubygems_mfa_required" => "true"
+  }
 end
