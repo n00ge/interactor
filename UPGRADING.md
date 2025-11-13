@@ -38,7 +38,11 @@ context[:foo]        # => "bar" (hash-like access still works)
 
 ### Contracts for Type Safety
 
-Interactor 4.0 introduces a new **Contracts** system that allows you to declare required and optional context attributes with type validation:
+Interactor 4.0 introduces a new **Contracts** system that allows you to declare required and optional context attributes with type validation for both **inputs** (expects) and **outputs** (ensures):
+
+#### Input Contracts (expects)
+
+Validate inputs before the interactor runs:
 
 ```ruby
 class CreateUser
@@ -49,17 +53,11 @@ class CreateUser
     required(:email).filled(:string)
     required(:name).filled(:string)
     optional(:age).maybe(:integer)
-    optional(:preferences).type(:hash)
   end
 
   def call
     # email and name are guaranteed to be present and non-empty strings
-    # age, if present, is guaranteed to be an integer
-    User.create!(
-      email: context.email,
-      name: context.name,
-      age: context.age
-    )
+    User.create!(email: context.email, name: context.name, age: context.age)
   end
 end
 
@@ -74,6 +72,124 @@ CreateUser.call(name: "John Doe")
 # Invalid call - wrong type
 CreateUser.call(email: "user@example.com", name: "John", age: "thirty")
 # => Failure with context.errors: ["age must be of type integer but got String"]
+```
+
+#### Output Contracts (ensures)
+
+**New!** Validate outputs after the interactor runs successfully:
+
+```ruby
+class CreateUser
+  include Interactor
+  include Interactor::Contracts
+
+  expects do
+    required(:email).filled(:string)
+    required(:name).filled(:string)
+  end
+
+  ensures do
+    required(:user).type(User)
+    required(:auth_token).filled(:string)
+  end
+
+  def call
+    context.user = User.create!(email: context.email, name: context.name)
+    context.auth_token = generate_token(context.user)
+    # If we forget to set user or auth_token, ensures will catch it!
+  end
+end
+
+# Valid call - all outputs present
+result = CreateUser.call(email: "user@example.com", name: "John")
+result.success?  # => true
+result.user      # => #<User> (guaranteed to exist)
+
+# Programmer error - forgot to set output
+class BrokenInteractor
+  include Interactor::Contracts
+
+  ensures do
+    required(:result).type(String)
+  end
+
+  def call
+    # Oops! Forgot to set context.result
+  end
+end
+
+result = BrokenInteractor.call
+result.failure?  # => true
+result.errors    # => ["result is required but missing"]
+```
+
+#### Why Output Contracts Matter
+
+1. **Self-Documentation** - Clearly declares what an interactor produces
+2. **Fail Fast** - Catches programming errors immediately
+3. **Organizer Safety** - Ensures each step produces what the next needs
+4. **Refactoring Confidence** - Guaranteed outputs make refactoring safer
+
+#### Real-World Example
+
+```ruby
+class SignUpUser
+  include Interactor::Organizer
+
+  # Each step has clear inputs and outputs
+  organize CreateUser, GenerateWelcomeToken, SendWelcomeEmail
+end
+
+class CreateUser
+  include Interactor::Contracts
+
+  expects do
+    required(:email).filled(:string)
+    required(:name).filled(:string)
+  end
+
+  ensures do
+    required(:user).type(User)  # Next step can rely on this
+  end
+
+  def call
+    context.user = User.create!(email: context.email, name: context.name)
+  end
+end
+
+class GenerateWelcomeToken
+  include Interactor::Contracts
+
+  expects do
+    required(:user).type(User)  # Matches previous step's output!
+  end
+
+  ensures do
+    required(:welcome_token).filled(:string)
+  end
+
+  def call
+    context.welcome_token = SecureRandom.hex(20)
+  end
+end
+
+class SendWelcomeEmail
+  include Interactor::Contracts
+
+  expects do
+    required(:user).type(User)
+    required(:welcome_token).filled(:string)
+  end
+
+  ensures do
+    required(:email_sent).type(:boolean)
+  end
+
+  def call
+    WelcomeMailer.send(context.user, context.welcome_token)
+    context.email_sent = true
+  end
+end
 ```
 
 #### Contract DSL Reference

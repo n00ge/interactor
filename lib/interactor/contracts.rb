@@ -1,7 +1,7 @@
 module Interactor
   # Public: Methods for declaring and validating context contracts.
   # Contracts allow you to specify required and optional attributes
-  # with type checking support.
+  # with type checking support for both inputs and outputs.
   #
   # Examples
   #
@@ -15,9 +15,15 @@ module Interactor
   #       optional(:age).maybe(:integer)
   #     end
   #
+  #     ensures do
+  #       required(:user).type(User)
+  #       optional(:welcome_sent).type(:boolean)
+  #     end
+  #
   #     def call
-  #       # email and name are guaranteed to be present
-  #       User.create!(email: context.email, name: context.name)
+  #       # email and name are guaranteed to be present (input)
+  #       context.user = User.create!(email: context.email, name: context.name)
+  #       # user is guaranteed to be set (output)
   #     end
   #   end
   module Contracts
@@ -40,7 +46,8 @@ module Interactor
 
     # Internal: Interactor::Contracts class methods.
     module ClassMethods
-      # Public: Define a contract for the interactor's context.
+      # Public: Define an input contract for the interactor's context.
+      # The contract is validated before the interactor is called.
       #
       # block - A block that defines the contract using the DSL.
       #
@@ -56,27 +63,65 @@ module Interactor
         @contract = Contract.new(&block)
       end
 
-      # Internal: Get the contract defined for this interactor.
+      # Public: Define an output contract for the interactor's context.
+      # The contract is validated after the interactor is called, but only
+      # if the context is successful.
+      #
+      # block - A block that defines the contract using the DSL.
+      #
+      # Examples
+      #
+      #   ensures do
+      #     required(:user).type(User)
+      #     required(:token).filled(:string)
+      #   end
+      #
+      # Returns nothing.
+      def ensures(&block)
+        @output_contract = Contract.new(&block)
+      end
+
+      # Internal: Get the input contract defined for this interactor.
       #
       # Returns the Contract instance or nil if no contract is defined.
       def contract
         @contract
       end
+
+      # Internal: Get the output contract defined for this interactor.
+      #
+      # Returns the Contract instance or nil if no contract is defined.
+      def output_contract
+        @output_contract
+      end
     end
 
-    # Internal: Override the initialize method to validate the contract.
+    # Internal: Override the initialize method to validate the input contract.
     def initialize(context = {})
       super
-      validate_contract! if self.class.contract
+      validate_input_contract! if self.class.contract
+    end
+
+    # Internal: Validate the output contract after the interactor is called.
+    # This is called by the main Interactor module's run! method.
+    #
+    # Returns nothing.
+    # Raises Interactor::Failure if validation fails.
+    def validate_output_contract!
+      return unless self.class.output_contract
+      return unless context.success?
+
+      errors = self.class.output_contract.validate(context)
+      context.fail!(errors: errors) unless errors.empty?
     end
 
     private
 
-    # Internal: Validate the context against the defined contract.
+    # Internal: Validate the context against the defined input contract.
     #
     # Raises ContractViolation if validation fails.
     # Returns nothing.
-    def validate_contract!
+    def validate_input_contract!
       errors = self.class.contract.validate(context)
       context.fail!(errors: errors) unless errors.empty?
     end

@@ -142,6 +142,7 @@ module Interactor
   def run!
     with_hooks do
       call
+      validate_output_contract! if respond_to?(:validate_output_contract!, true)
       context.called!(self)
     end
   rescue
