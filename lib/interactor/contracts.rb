@@ -276,7 +276,7 @@ module Interactor
           value.is_a?(Symbol)
         else
           # Allow class names as types
-          value.is_a?(type) if type.is_a?(Class)
+          type.is_a?(Class) && value.is_a?(type)
         end
       end
     end
