@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Interactor
   # Public: The object for tracking state of an Interactor's invocation. The
   # context is used to initialize the interactor with the information required

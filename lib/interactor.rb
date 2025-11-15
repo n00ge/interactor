@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require "interactor/context"
 require "interactor/error"
 require "interactor/hooks"
@@ -141,6 +143,7 @@ module Interactor
   # Raises Interactor::Failure if the context is failed.
   def run!
     with_hooks do
+      validate_input_contract! if respond_to?(:validate_input_contract!, true)
       call
       context.called!(self)
       validate_output_contract! if respond_to?(:validate_output_contract!, true)

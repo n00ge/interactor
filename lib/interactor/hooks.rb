@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Interactor
   # Internal: Methods relating to supporting hooks around Interactor invocation.
   module Hooks
