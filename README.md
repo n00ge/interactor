@@ -1,37 +1,64 @@
-# Interactor
+# ServiceActor
 
-[![Gem Version](https://img.shields.io/gem/v/interactor.svg?style=flat-square)](http://rubygems.org/gems/interactor)
-[![Build Status](https://img.shields.io/travis/collectiveidea/interactor/master.svg?style=flat-square)](https://travis-ci.org/collectiveidea/interactor)
-[![Code Climate](https://img.shields.io/codeclimate/github/collectiveidea/interactor.svg?style=flat-square)](https://codeclimate.com/github/collectiveidea/interactor)
-[![Test Coverage](http://img.shields.io/codeclimate/coverage/github/collectiveidea/interactor.svg?style=flat-square)](https://codeclimate.com/github/collectiveidea/interactor)
-[![Dependency Status](https://img.shields.io/gemnasium/collectiveidea/interactor.svg?style=flat-square)](https://gemnasium.com/collectiveidea/interactor)
+[![Gem Version](https://img.shields.io/gem/v/service-actor.svg?style=flat-square)](http://rubygems.org/gems/service-actor)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/n00ge/service-actor/ci.yml?style=flat-square)](https://github.com/n00ge/service-actor/actions)
+
+Simple service objects (actors) with type-safe contracts for Ruby 3.x.
+
+## Attribution
+
+ServiceActor is a modernized fork of [collectiveidea/interactor](https://github.com/collectiveidea/interactor), originally created by [Collective Idea](https://collectiveidea.com). We are grateful for their pioneering work on the interactor pattern in Ruby.
+
+**Key differences from the original:**
+- Ruby 3.x compatibility (no deprecated OpenStruct)
+- Type-safe contracts with `expects`/`ensures` DSL
+- Zero external dependencies
+- Modern gem infrastructure
 
 ## Getting Started
 
-Add Interactor to your Gemfile and `bundle install`.
+Add ServiceActor to your Gemfile and `bundle install`.
 
 ```ruby
-gem "interactor", "~> 4.0"
+gem "service-actor", "~> 1.0"
 ```
 
-## What is an Interactor?
+## Migration from collectiveidea/interactor
 
-An interactor is a simple, single-purpose object.
+ServiceActor provides backward compatibility aliases for `Interactor`. Your existing code should continue to work:
 
-Interactors are used to encapsulate your application's
-[business logic](http://en.wikipedia.org/wiki/Business_logic). Each interactor
+```ruby
+# These work the same
+include Interactor           # Still works (aliased)
+include ServiceActor         # New preferred way
+
+# These are equivalent
+Interactor::Context          # Aliased to ServiceActor::Context
+Interactor::Failure          # Aliased to ServiceActor::Failure
+Interactor::Organizer        # Aliased to ServiceActor::Organizer
+Interactor::Contracts        # Aliased to ServiceActor::Contracts
+```
+
+We recommend gradually updating your code to use `ServiceActor` for clarity.
+
+## What is a ServiceActor?
+
+A service actor is a simple, single-purpose object.
+
+Service actors are used to encapsulate your application's
+[business logic](http://en.wikipedia.org/wiki/Business_logic). Each actor
 represents one thing that your application *does*.
 
 ### Context
 
-An interactor is given a *context*. The context contains everything the
-interactor needs to do its work.
+An actor is given a *context*. The context contains everything the
+actor needs to do its work.
 
-When an interactor does its single purpose, it affects its given context.
+When an actor does its single purpose, it affects its given context.
 
 #### Adding to the Context
 
-As an interactor runs it can add information to the context.
+As an actor runs it can add information to the context.
 
 ```ruby
 context.user = user
@@ -39,7 +66,7 @@ context.user = user
 
 #### Failing the Context
 
-When something goes wrong in your interactor, you can flag the context as
+When something goes wrong in your actor, you can flag the context as
 failed.
 
 ```ruby
@@ -76,26 +103,26 @@ context.success? # => false
 
 #### Dealing with Failure
 
-`context.fail!` always throws an exception of type `Interactor::Failure`.
+`context.fail!` always throws an exception of type `ServiceActor::Failure`.
 
-Normally, however, these exceptions are not seen. In the recommended usage, the controller invokes the interactor using the class method `call`, then checks the `success?` method of the context.
+Normally, however, these exceptions are not seen. In the recommended usage, the controller invokes the actor using the class method `call`, then checks the `success?` method of the context.
 
-This works because the `call` class method swallows exceptions.  When unit testing an interactor, if calling custom business logic methods directly and bypassing `call`, be aware that `fail!` will generate such exceptions.
+This works because the `call` class method swallows exceptions. When unit testing an actor, if calling custom business logic methods directly and bypassing `call`, be aware that `fail!` will generate such exceptions.
 
-See *Interactors in the Controller*, below, for the recommended usage of `call` and `success?`.
+See *Actors in the Controller*, below, for the recommended usage of `call` and `success?`.
 
 ### Contracts (Type Safety)
 
-**New in Interactor 4.0**: You can now declare required and optional context attributes with type validation using contracts for both inputs and outputs.
+You can declare required and optional context attributes with type validation using contracts for both inputs and outputs.
 
 #### Input Contracts (expects)
 
-Use `expects` to validate inputs before the interactor runs:
+Use `expects` to validate inputs before the actor runs:
 
 ```ruby
 class CreateUser
-  include Interactor
-  include Interactor::Contracts
+  include ServiceActor
+  include ServiceActor::Contracts
 
   expects do
     required(:email).filled(:string)
@@ -120,12 +147,12 @@ result.errors    # => ["email is required but missing"]
 
 #### Output Contracts (ensures)
 
-Use `ensures` to validate outputs after the interactor runs successfully:
+Use `ensures` to validate outputs after the actor runs successfully:
 
 ```ruby
 class CreateUser
-  include Interactor
-  include Interactor::Contracts
+  include ServiceActor
+  include ServiceActor::Contracts
 
   expects do
     required(:email).filled(:string)
@@ -145,7 +172,7 @@ class CreateUser
 end
 ```
 
-Output contracts are validated **only if the interactor succeeds**. If the context is failed during execution, output validation is skipped.
+Output contracts are validated **only if the actor succeeds**. If the context is failed during execution, output validation is skipped.
 
 ```ruby
 result = CreateUser.call(email: "test@example.com", name: "John")
@@ -160,10 +187,40 @@ result.errors    # => ["user is required but missing"]
 
 #### Benefits of Output Contracts
 
-1. **Documentation** - Clearly see what an interactor produces
+1. **Documentation** - Clearly see what an actor produces
 2. **Type Safety** - Catch missing or incorrect outputs at runtime
 3. **Organizer Validation** - Ensure each step produces what the next step needs
 4. **Fail Fast** - Detect bugs immediately rather than later in the call chain
+
+#### Advanced Contract Features
+
+**Format Validation:**
+```ruby
+expects do
+  required(:email).filled(:string).format(/\A[\w+\-.]+@[a-z\d\-]+(\.[a-z\d\-]+)*\.[a-z]+\z/i)
+end
+```
+
+**Method Presence:**
+```ruby
+expects do
+  required(:user).responds_to(:email, :name, :save!)
+end
+```
+
+**Enumerated Values:**
+```ruby
+expects do
+  required(:status).one_of("pending", "active", "cancelled")
+end
+```
+
+**Range Validation:**
+```ruby
+expects do
+  required(:age).filled(:integer).in_range(18..120)
+end
+```
 
 #### Contract DSL Reference
 
@@ -175,20 +232,24 @@ result.errors    # => ["user is required but missing"]
 - `.filled(type)` - Must not be nil or empty, optionally check type
 - `.maybe(type)` - May be nil, but if present must match type
 - `.type(type)` - Must match the specified type
+- `.format(regex)` - Must match the regular expression
+- `.responds_to(*methods)` - Must respond to the given methods
+- `.one_of(*values)` - Must be one of the specified values
+- `.in_range(range)` - Must be within the specified range
 
 **Supported Types:**
 
-`:string`, `:integer`, `:float`, `:numeric`, `:hash`, `:array`, `:boolean`/`:bool`, `:symbol`, or any Ruby class.
+`:string`, `:integer`, `:float`, `:numeric`, `:hash`, `:array`, `:boolean`/`:bool`, `:symbol`, `:time`, `:date`, or any Ruby class/module.
 
 **Examples:**
 
 ```ruby
 class ProcessPayment
-  include Interactor::Contracts
+  include ServiceActor::Contracts
 
   expects do
     required(:user).type(User)
-    required(:amount).filled(:integer)
+    required(:amount).filled(:integer).in_range(1..100_000)
     required(:params).filled(:hash)
     optional(:notify).maybe(:boolean)
   end
@@ -205,8 +266,8 @@ end
 
 #### Before Hooks
 
-Sometimes an interactor needs to prepare its context before the interactor is
-even run. This can be done with before hooks on the interactor.
+Sometimes an actor needs to prepare its context before the actor is
+even run. This can be done with before hooks on the actor.
 
 ```ruby
 before do
@@ -226,7 +287,7 @@ end
 
 #### After Hooks
 
-Interactors can also perform teardown operations after the interactor instance
+Actors can also perform teardown operations after the actor instance
 is run.
 
 ```ruby
@@ -235,19 +296,19 @@ after do
 end
 ```
 
-NB: After hooks are only run on success.  If the `fail!` method is called, the interactor's after hooks are not run.
+NB: After hooks are only run on success. If the `fail!` method is called, the actor's after hooks are not run.
 
 #### Around Hooks
 
 You can also define around hooks in the same way as before or after hooks, using
 either a block or a symbol method name. The difference is that an around block
 or method accepts a single argument. Invoking the `call` method on that argument
-will continue invocation of the interactor. For example, with a block:
+will continue invocation of the actor. For example, with a block:
 
 ```ruby
-around do |interactor|
+around do |actor|
   context.start_time = Time.now
-  interactor.call
+  actor.call
   context.finish_time = Time.now
 end
 ```
@@ -257,14 +318,14 @@ With a method:
 ```ruby
 around :time_execution
 
-def time_execution(interactor)
+def time_execution(actor)
   context.start_time = Time.now
-  interactor.call
+  actor.call
   context.finish_time = Time.now
 end
 ```
 
-NB: If the `fail!` method is called, all of the interactor's around hooks cease execution, and no code after `interactor.call` will be run.
+NB: If the `fail!` method is called, all of the actor's around hooks cease execution, and no code after `actor.call` will be run.
 
 #### Hook Sequence
 
@@ -273,15 +334,15 @@ hooks are invoked in the opposite order. Around hooks are invoked outside of any
 defined before and after hooks. For example:
 
 ```ruby
-around do |interactor|
+around do |actor|
   puts "around before 1"
-  interactor.call
+  actor.call
   puts "around after 1"
 end
 
-around do |interactor|
+around do |actor|
   puts "around before 2"
-  interactor.call
+  actor.call
   puts "around after 2"
 end
 
@@ -315,32 +376,32 @@ around after 2
 around after 1
 ```
 
-#### Interactor Concerns
+#### Actor Concerns
 
-An interactor can define multiple before/after hooks, allowing common hooks to
-be extracted into interactor concerns.
+An actor can define multiple before/after hooks, allowing common hooks to
+be extracted into actor concerns.
 
 ```ruby
-module InteractorTimer
+module ActorTimer
   extend ActiveSupport::Concern
 
   included do
-    around do |interactor|
+    around do |actor|
       context.start_time = Time.now
-      interactor.call
+      actor.call
       context.finish_time = Time.now
     end
   end
 end
 ```
 
-### An Example Interactor
+### An Example Actor
 
-Your application could use an interactor to authenticate a user.
+Your application could use an actor to authenticate a user.
 
 ```ruby
 class AuthenticateUser
-  include Interactor
+  include ServiceActor
 
   def call
     if user = User.authenticate(context.email, context.password)
@@ -353,13 +414,13 @@ class AuthenticateUser
 end
 ```
 
-To define an interactor, simply create a class that includes the `Interactor`
-module and give it a `call` instance method. The interactor can access its
+To define an actor, simply create a class that includes the `ServiceActor`
+module and give it a `call` instance method. The actor can access its
 `context` from within `call`.
 
-## Interactors in the Controller
+## Actors in the Controller
 
-Most of the time, your application will use its interactors from its
+Most of the time, your application will use its actors from its
 controllers. The following controller:
 
 ```ruby
@@ -406,12 +467,12 @@ class SessionsController < ApplicationController
 end
 ```
 
-The `call` class method is the proper way to invoke an interactor. The hash
-argument is converted to the interactor instance's context. The `call` instance
-method is invoked along with any hooks that the interactor might define.
+The `call` class method is the proper way to invoke an actor. The hash
+argument is converted to the actor instance's context. The `call` instance
+method is invoked along with any hooks that the actor might define.
 Finally, the context (along with any changes made to it) is returned.
 
-## When to Use an Interactor
+## When to Use a ServiceActor
 
 Given the user authentication example, your controller may look like:
 
@@ -437,21 +498,18 @@ class SessionsController < ApplicationController
 end
 ```
 
-For such a simple use case, using an interactor can actually require *more*
-code. So why use an interactor?
+For such a simple use case, using an actor can actually require *more*
+code. So why use an actor?
 
 ### Clarity
 
-[We](http://collectiveidea.com) often use interactors right off the bat for all
-of our destructive actions (`POST`, `PUT` and `DELETE` requests) and since we
-put our interactors in `app/interactors`, a glance at that directory gives any
-developer a quick understanding of everything the application *does*.
+A glance at your `app/actors` directory gives any developer a quick understanding of everything the application *does*.
 
 ```
 ▾ app/
   ▸ controllers/
   ▸ helpers/
-  ▾ interactors/
+  ▾ actors/
       authenticate_user.rb
       cancel_account.rb
       publish_post.rb
@@ -462,7 +520,7 @@ developer a quick understanding of everything the application *does*.
   ▸ views/
 ```
 
-**TIP:** Name your interactors after your business logic, not your
+**TIP:** Name your actors after your business logic, not your
 implementation. `CancelAccount` will serve you better than `DestroyUser` as the
 account cancellation interaction takes on more responsibility in the future.
 
@@ -470,8 +528,7 @@ account cancellation interaction takes on more responsibility in the future.
 
 **SPOILER ALERT:** Your use case won't *stay* so simple.
 
-In [our](http://collectiveidea.com) experience, a simple task like
-authenticating a user will eventually take on multiple responsibilities:
+A simple task like authenticating a user will eventually take on multiple responsibilities:
 
 * Welcoming back a user who hadn't logged in for a while
 * Prompting a user to update his or her password
@@ -481,23 +538,23 @@ authenticating a user will eventually take on multiple responsibilities:
 The list goes on, and as that list grows, so does your controller. This is how
 fat controllers are born.
 
-If instead you use an interactor right away, as responsibilities are added, your
+If instead you use an actor right away, as responsibilities are added, your
 controller (and its tests) change very little or not at all. Choosing the right
-kind of interactor can also prevent simply shifting those added responsibilities
-to the interactor.
+kind of actor can also prevent simply shifting those added responsibilities
+to the actor.
 
-## Kinds of Interactors
+## Kinds of Actors
 
-There are two kinds of interactors built into the Interactor library: basic
-interactors and organizers.
+There are two kinds of actors built into ServiceActor: basic
+actors and organizers.
 
-### Interactors
+### Actors
 
-A basic interactor is a class that includes `Interactor` and defines `call`.
+A basic actor is a class that includes `ServiceActor` and defines `call`.
 
 ```ruby
 class AuthenticateUser
-  include Interactor
+  include ServiceActor
 
   def call
     if user = User.authenticate(context.email, context.password)
@@ -510,24 +567,24 @@ class AuthenticateUser
 end
 ```
 
-Basic interactors are the building blocks. They are your application's
+Basic actors are the building blocks. They are your application's
 single-purpose units of work.
 
 ### Organizers
 
-An organizer is an important variation on the basic interactor. Its single
-purpose is to run *other* interactors.
+An organizer is an important variation on the basic actor. Its single
+purpose is to run *other* actors.
 
 ```ruby
 class PlaceOrder
-  include Interactor::Organizer
+  include ServiceActor::Organizer
 
   organize CreateOrder, ChargeCard, SendThankYou
 end
 ```
 
 In the controller, you can run the `PlaceOrder` organizer just like you would
-any other interactor:
+any other actor:
 
 ```ruby
 class OrdersController < ApplicationController
@@ -550,22 +607,22 @@ class OrdersController < ApplicationController
 end
 ```
 
-The organizer passes its context to the interactors that it organizes, one at a
-time and in order. Each interactor may change that context before it's passed
-along to the next interactor.
+The organizer passes its context to the actors that it organizes, one at a
+time and in order. Each actor may change that context before it's passed
+along to the next actor.
 
 #### Rollback
 
-If any one of the organized interactors fails its context, the organizer stops.
-If the `ChargeCard` interactor fails, `SendThankYou` is never called.
+If any one of the organized actors fails its context, the organizer stops.
+If the `ChargeCard` actor fails, `SendThankYou` is never called.
 
-In addition, any interactors that had already run are given the chance to undo
+In addition, any actors that had already run are given the chance to undo
 themselves, in reverse order. Simply define the `rollback` method on your
-interactors:
+actors:
 
 ```ruby
 class CreateOrder
-  include Interactor
+  include ServiceActor
 
   def call
     order = Order.create(order_params)
@@ -583,18 +640,18 @@ class CreateOrder
 end
 ```
 
-**NOTE:** The interactor that fails is *not* rolled back. Because every
-interactor should have a single purpose, there should be no need to clean up
-after any failed interactor.
+**NOTE:** The actor that fails is *not* rolled back. Because every
+actor should have a single purpose, there should be no need to clean up
+after any failed actor.
 
-## Testing Interactors
+## Testing Actors
 
-When written correctly, an interactor is easy to test because it only *does* one
-thing. Take the following interactor:
+When written correctly, an actor is easy to test because it only *does* one
+thing. Take the following actor:
 
 ```ruby
 class AuthenticateUser
-  include Interactor
+  include ServiceActor
 
   def call
     if user = User.authenticate(context.email, context.password)
@@ -607,7 +664,7 @@ class AuthenticateUser
 end
 ```
 
-You can test just this interactor's single purpose and how it affects the
+You can test just this actor's single purpose and how it affects the
 context.
 
 ```ruby
@@ -652,25 +709,24 @@ describe AuthenticateUser do
 end
 ```
 
-[We](http://collectiveidea.com) use RSpec but the same approach applies to any
-testing framework.
+We use RSpec but the same approach applies to any testing framework.
 
 ### Isolation
 
 You may notice that we stub `User.authenticate` in our test rather than creating
 users in the database. That's because our purpose in
-`spec/interactors/authenticate_user_spec.rb` is to test just the
-`AuthenticateUser` interactor. The `User.authenticate` method is put through its
+`spec/actors/authenticate_user_spec.rb` is to test just the
+`AuthenticateUser` actor. The `User.authenticate` method is put through its
 own paces in `spec/models/user_spec.rb`.
 
 It's a good idea to define your own interfaces to your models. Doing so makes it
-easy to draw a line between which responsibilities belong to the interactor and
+easy to draw a line between which responsibilities belong to the actor and
 which to the model. The `User.authenticate` method is a good, clear line.
-Imagine the interactor otherwise:
+Imagine the actor otherwise:
 
 ```ruby
 class AuthenticateUser
-  include Interactor
+  include ServiceActor
 
   def call
     user = User.where(email: context.email).first
@@ -685,15 +741,15 @@ class AuthenticateUser
 end
 ```
 
-It would be very difficult to test this interactor in isolation and even if you
+It would be very difficult to test this actor in isolation and even if you
 did, as soon as you change your ORM or your encryption algorithm (both model
-concerns), your interactors (business concerns) break.
+concerns), your actors (business concerns) break.
 
 *Draw clear lines.*
 
 ### Integration
 
-While it's important to test your interactors in isolation, it's just as
+While it's important to test your actors in isolation, it's just as
 important to write good integration or acceptance tests.
 
 One of the pitfalls of testing in isolation is that when you stub a method, you
@@ -703,7 +759,7 @@ exist.
 When you write full-stack tests that tie all of the pieces together, you can be
 sure that your application's individual pieces are working together as expected.
 That becomes even more important when you add a new layer to your code like
-interactors.
+actors.
 
 **TIP:** If you track your test coverage, try for 100% coverage *before*
 integrations tests. Then keep writing integration tests until you sleep well at
@@ -711,8 +767,8 @@ night.
 
 ### Controllers
 
-One of the advantages of using interactors is how much they simplify controllers
-and their tests. Because you're testing your interactors thoroughly in isolation
+One of the advantages of using actors is how much they simplify controllers
+and their tests. Because you're testing your actors thoroughly in isolation
 as well as in integration tests (right?), you can remove your business logic
 from your controller tests.
 
@@ -786,12 +842,11 @@ end
 ```
 
 This controller test will have to change very little during the life of the
-application because all of the magic happens in the interactor.
+application because all of the magic happens in the actor.
 
 ### Rails
 
-[We](http://collectiveidea.com) love Rails, and we use Interactor with Rails. We
-put our interactors in `app/interactors` and we name them as verbs:
+We love Rails, and we use ServiceActor with Rails. We put our actors in `app/actors` and we name them as verbs:
 
 * `AddProductToCart`
 * `AuthenticateUser`
@@ -799,22 +854,20 @@ put our interactors in `app/interactors` and we name them as verbs:
 * `RegisterUser`
 * `RemoveProductFromCart`
 
-See: [Interactor Rails](https://github.com/collectiveidea/interactor-rails)
-
 ## Contributions
 
-Interactor is open source and contributions from the community are encouraged!
+ServiceActor is open source and contributions from the community are encouraged!
 No contribution is too small.
-
-See Interactor's
-[contribution guidelines](CONTRIBUTING.md) for more information.
 
 ## Thank You
 
-A very special thank you to [Attila Domokos](https://github.com/adomokos) for
-his fantastic work on [LightService](https://github.com/adomokos/light-service).
-Interactor is inspired heavily by the concepts put to code by Attila.
+Special thanks to:
 
-Interactor was born from a desire for a slightly simplified interface. We
-understand that this is a matter of personal preference, so please take a look
-at LightService as well!
+- **[Collective Idea](https://collectiveidea.com)** for creating the original [interactor](https://github.com/collectiveidea/interactor) gem
+- **[Attila Domokos](https://github.com/adomokos)** for [LightService](https://github.com/adomokos/light-service), which inspired the original interactor gem
+
+ServiceActor builds on the excellent foundation laid by these projects.
+
+## License
+
+ServiceActor is released under the [MIT License](MIT-LICENSE).

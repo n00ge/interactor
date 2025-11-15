@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Interactor
+module ServiceActor
   # Public: Methods for declaring and validating context contracts.
   # Contracts allow you to specify required and optional attributes
   # with type checking support for both inputs and outputs.
@@ -8,8 +8,8 @@ module Interactor
   # Examples
   #
   #   class CreateUser
-  #     include Interactor
-  #     include Interactor::Contracts
+  #     include ServiceActor
+  #     include ServiceActor::Contracts
   #
   #     expects do
   #       required(:email).filled(:string)
@@ -39,17 +39,17 @@ module Interactor
       end
     end
 
-    # Internal: Install Interactor::Contracts behavior in the given class.
+    # Internal: Install ServiceActor::Contracts behavior in the given class.
     def self.included(base)
       base.class_eval do
         extend ClassMethods
       end
     end
 
-    # Internal: Interactor::Contracts class methods.
+    # Internal: ServiceActor::Contracts class methods.
     module ClassMethods
-      # Public: Define an input contract for the interactor's context.
-      # The contract is validated before the interactor is called.
+      # Public: Define an input contract for the actor's context.
+      # The contract is validated before the actor is called.
       # Contracts are inherited from parent classes and merged.
       #
       # block - A block that defines the contract using the DSL.
@@ -66,8 +66,8 @@ module Interactor
         @contract = Contract.new(&block)
       end
 
-      # Public: Define an output contract for the interactor's context.
-      # The contract is validated after the interactor is called, but only
+      # Public: Define an output contract for the actor's context.
+      # The contract is validated after the actor is called, but only
       # if the context is successful.
       # Contracts are inherited from parent classes and merged.
       #
@@ -85,7 +85,7 @@ module Interactor
         @output_contract = Contract.new(&block)
       end
 
-      # Internal: Get the input contract defined for this interactor.
+      # Internal: Get the input contract defined for this actor.
       # Includes inherited contracts from parent classes.
       #
       # Returns the Contract instance or nil if no contract is defined.
@@ -100,7 +100,7 @@ module Interactor
         end
       end
 
-      # Internal: Get the output contract defined for this interactor.
+      # Internal: Get the output contract defined for this actor.
       # Includes inherited contracts from parent classes.
       #
       # Returns the Contract instance or nil if no contract is defined.
@@ -116,11 +116,11 @@ module Interactor
       end
     end
 
-    # Internal: Validate the input contract before the interactor is called.
-    # This is called by the main Interactor module's run! method.
+    # Internal: Validate the input contract before the actor is called.
+    # This is called by the main ServiceActor module's run! method.
     #
     # Returns nothing.
-    # Raises Interactor::Failure if validation fails.
+    # Raises ServiceActor::Failure if validation fails.
     def validate_input_contract!
       return unless self.class.contract
 
@@ -128,11 +128,11 @@ module Interactor
       context.fail!(errors: errors) unless errors.empty?
     end
 
-    # Internal: Validate the output contract after the interactor is called.
-    # This is called by the main Interactor module's run! method.
+    # Internal: Validate the output contract after the actor is called.
+    # This is called by the main ServiceActor module's run! method.
     #
     # Returns nothing.
-    # Raises Interactor::Failure if validation fails.
+    # Raises ServiceActor::Failure if validation fails.
     def validate_output_contract!
       return unless self.class.output_contract
       return unless context.success?
@@ -184,7 +184,7 @@ module Interactor
 
       # Internal: Validate a context against this contract.
       #
-      # context - An Interactor::Context to validate.
+      # context - A ServiceActor::Context to validate.
       #
       # Returns an Array of error messages (empty if valid).
       def validate(context)
@@ -392,7 +392,7 @@ module Interactor
 
       # Internal: Validate this rule against a context.
       #
-      # context - An Interactor::Context to validate.
+      # context - A ServiceActor::Context to validate.
       #
       # Returns an Array of error messages (empty if valid).
       def validate(context)
