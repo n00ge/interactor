@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 shared_examples :lint do
   let(:interactor) { Class.new.send(:include, described_class) }
 
@@ -6,7 +8,7 @@ shared_examples :lint do
     let(:instance) { double(:instance, context: context) }
 
     it "calls an instance with the given context" do
-      expect(interactor).to receive(:new).once.with(foo: "bar") { instance }
+      expect(interactor).to receive(:new).once.with({ foo: "bar" }) { instance }
       expect(instance).to receive(:run).once.with(no_args)
 
       expect(interactor.call(foo: "bar")).to eq(context)
@@ -25,7 +27,7 @@ shared_examples :lint do
     let(:instance) { double(:instance, context: context) }
 
     it "calls an instance with the given context" do
-      expect(interactor).to receive(:new).once.with(foo: "bar") { instance }
+      expect(interactor).to receive(:new).once.with({ foo: "bar" }) { instance }
       expect(instance).to receive(:run!).once.with(no_args)
 
       expect(interactor.call!(foo: "bar")).to eq(context)
@@ -43,7 +45,7 @@ shared_examples :lint do
     let(:context) { double(:context) }
 
     it "initializes a context" do
-      expect(Interactor::Context).to receive(:build).once.with(foo: "bar") { context }
+      expect(ServiceActor::Context).to receive(:build).once.with({ foo: "bar" }) { context }
 
       instance = interactor.new(foo: "bar")
 
@@ -52,7 +54,7 @@ shared_examples :lint do
     end
 
     it "initializes a blank context if none is given" do
-      expect(Interactor::Context).to receive(:build).once.with({}) { context }
+      expect(ServiceActor::Context).to receive(:build).once.with({}) { context }
 
       instance = interactor.new
 
@@ -71,7 +73,7 @@ shared_examples :lint do
     end
 
     it "rescues failure" do
-      expect(instance).to receive(:run!).and_raise(Interactor::Failure)
+      expect(instance).to receive(:run!).and_raise(ServiceActor::Failure)
 
       expect {
         instance.run
@@ -97,11 +99,11 @@ shared_examples :lint do
     end
 
     it "raises failure" do
-      expect(instance).to receive(:run!).and_raise(Interactor::Failure)
+      expect(instance).to receive(:run!).and_raise(ServiceActor::Failure)
 
       expect {
         instance.run!
-      }.to raise_error(Interactor::Failure)
+      }.to raise_error(ServiceActor::Failure)
     end
 
     it "raises other errors" do

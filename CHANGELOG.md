@@ -1,12 +1,45 @@
-## 3.1.0 / 2014-10-13
+# Changelog
+
+## 1.0.0 / 2024
+
+ServiceActor is a modernized fork of [collectiveidea/interactor](https://github.com/collectiveidea/interactor).
+
+### New Features
+
+* **Type-safe contracts** - Input validation with `expects` DSL
+* **Output contracts** - Output validation with `ensures` DSL
+* **Custom validators** - `format()`, `responds_to()`, `one_of()`, `in_range()`
+* **Contract inheritance** - Contracts inherited from parent classes
+* **Backward compatibility** - `Interactor` aliased to `ServiceActor`
+
+### Breaking Changes
+
+* Ruby 3.0+ required
+* OpenStruct removed (deprecated in Ruby 3.2+)
+* Custom Context implementation (API-compatible)
+
+### Improvements
+
+* Zero external dependencies
+* Modern gem infrastructure
+* Comprehensive test suite (167+ tests)
+* Full TomDoc documentation
+
+---
+
+## Historical Changelog (collectiveidea/interactor)
+
+The following entries are from the original interactor gem:
+
+### 3.1.0 / 2014-10-13
 
 * [FEATURE] Add around hooks
 
-## 3.0.1 / 2014-09-09
+### 3.0.1 / 2014-09-09
 
 * [ENHANCEMENT] Add TomDoc code documentation
 
-## 3.0.0 / 2014-09-07
+### 3.0.0 / 2014-09-07
 
 * [FEATURE] Remove "magical" access to the context through the interactor
 * [FEATURE] Manage context values via setters/getters rather than hash access
@@ -17,26 +50,26 @@
 * [ENHANCEMENT] Build a suite of realistic integration tests
 * [ENHANCEMENT] Move rollback responsibility into the context
 
-## 2.1.1 / 2014-09-30
+### 2.1.1 / 2014-09-30
 
 * [FEATURE] Halt performance if the interactor fails prior
 * [ENHANCEMENT] Add support for Ruby 2.1
 
-## 2.1.0 / 2013-09-05
+### 2.1.0 / 2013-09-05
 
 * [FEATURE] Roll back when an interactor within an organizer raises an error
 * [BUGFIX] Ensure that context-deferred methods respect string keys
 * [FEATURE] Respect context initialization from an indifferent access hash
 
-## 2.0.1 / 2013-08-28
+### 2.0.1 / 2013-08-28
 
 * [BUGFIX] Allow YAML (de)serialization by fixing interactor allocation
 
-## 2.0.0 / 2013-08-19
+### 2.0.0 / 2013-08-19
 
 * [BUGFIX] Fix rollback behavior within nested organizers
 * [BUGFIX] Skip rollback for the failed interactor
 
-## 1.0.0 / 2013-08-17
+### 1.0.0 / 2013-08-17
 
 * Initial release!
